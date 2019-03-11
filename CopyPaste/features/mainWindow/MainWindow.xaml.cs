@@ -55,8 +55,6 @@ namespace CopyPaste.features.mainWindow {
 
 		private void BStart_OnClick(object sender, RoutedEventArgs e) {
 			workState();
-			tboxEOBDPath.Text = MainWindowController.DEFAULT_EOBD_PATH;
-			tboxVehiclePath.Text = MainWindowController.DEFAULT_TEMP_PATH;
 			presenter.startProcedure(tboxEOBDPath.Text, tboxVehiclePath.Text);
 		}
 

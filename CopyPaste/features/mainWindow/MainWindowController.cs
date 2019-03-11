@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Threading;
@@ -64,14 +65,38 @@ namespace CopyPaste.features.mainWindow {
 									if (!new DirectoryInfo(sVehiclePath).Exists) { window.showMessage("Неверно указан путь к Vehile"); }
 									var libCfgPath = Path.Combine(sEOBDPath, "lib.cfg");
 									if (!new FileInfo(libCfgPath).Exists) { window.showMessage("Не найден файл lib.cfg"); }
-									var fileList = getFileList(libCfgPath);
+									createAndroidDev();
+									createLastRow();
 									dispatcher.Invoke(() => window.setTextInStatus("Склеивание"));
-									glueResultingFiles(fileList, window.setValueInProgressBar).Wait();
+									glueResultingFiles(getFileList(libCfgPath), window.setValueInProgressBar).Wait();
 									dispatcher.Invoke(() => window.setTextInStatus("Копирование"));
 									copyFiles(getDictionary(getFilesForCopied(), sVehiclePath), window.setValueInProgressBar).Wait();
 									dispatcher.Invoke(() => window.copiedCompleted());
-								} catch (Exception e) { dispatcher.Invoke(() => window.showMessage(e.Message)); }
+								} catch (Exception e) {
+									dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
+								}
 							});
+		}
+
+		private void createAndroidDev() {
+			var LicenseDat = Path.Combine(sEOBDPath, "LICENSE.DAT");
+			var androidDev = Path.Combine(sEOBDPath, "Android.dev");
+			if (new FileInfo(androidDev).Exists) { File.Delete(androidDev); }
+			File.Copy(LicenseDat, androidDev);
+		}
+
+		private void createLastRow() {
+			try {
+				var lastRow = Path.Combine(sEOBDPath, "last_row.so");
+				if (!new FileInfo(lastRow).Exists) { File.Create(lastRow); }
+				var sVersion = new FileInfo(lastRow).Directory?.Name;
+
+				var iVersion = 1000 * Convert.ToInt32(sVersion?[1].ToString()) + 100 * Convert.ToInt32(sVersion?[2].ToString()) +
+											10 * Convert.ToInt32(sVersion?[4].ToString()) + 1 * Convert.ToInt32(sVersion?[5].ToString());
+				if (iVersion > 2237) { File.WriteAllText(lastRow, $"EOBD2{sVersion}"); }
+			} catch (Exception e) {
+				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
+			}
 		}
 
 		private List<FileInfo> getFileList(string libCfgPath) {
@@ -81,13 +106,16 @@ namespace CopyPaste.features.mainWindow {
 				var folderPath = new FileInfo(libCfgPath).Directory?.FullName ??
 												throw new Exception($"Не могу получить путь к директории {libCfgPath}");
 				var content = File.ReadAllText(libCfgPath);
-				var fileNames = content.Split(';');
+				var fileNames = content.Split(';').ToList();
+				fileNames.Add("last_row.so");
 
 				foreach (var fileName in fileNames) {
 					if (string.IsNullOrEmpty(fileName)) { continue; }
 					fileList.Add(new FileInfo(Path.Combine(folderPath, fileName)));
 				}
-			} catch (Exception e) { dispatcher.Invoke(() => window.showMessage(e.Message)); }
+			} catch (Exception e) {
+				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
+			}
 			return fileList;
 		}
 
@@ -124,7 +152,9 @@ namespace CopyPaste.features.mainWindow {
 				fileList.Add(new FileInfo(Path.Combine(sEOBDPath, "Dpu.ver")));
 				fileList.Add(new FileInfo(Path.Combine(sEOBDPath, "Android.dev")));
 				fileList.Add(new FileInfo(Path.Combine(sEOBDPath, "libSTD.so")));
-			} catch (Exception e) { dispatcher.Invoke(() => window.showMessage(e.Message)); }
+			} catch (Exception e) {
+				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
+			}
 			return fileList;
 		}
 
@@ -138,7 +168,9 @@ namespace CopyPaste.features.mainWindow {
 				directoryList.ForEach(directoryInfo =>
 																fileList.ForEach(info => dictionary.Add(Path.Combine(directoryInfo.FullName, info.Name),
 																																				info.FullName)));
-			} catch (Exception e) { dispatcher.Invoke(() => window.showMessage(e.Message)); }
+			} catch (Exception e) {
+				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
+			}
 			return dictionary;
 		}
 
