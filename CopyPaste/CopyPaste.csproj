@@ -23,6 +23,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -33,9 +34,13 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>app_ic.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -54,7 +59,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Page Include="MainWindow.xaml">
+    <Compile Include="utils\CopyFiles.cs" />
+    <Compile Include="utils\UIHelper.cs" />
+    <Compile Include="utils\Utils.cs" />
+    <Page Include="features\mainWindow\MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -62,10 +70,16 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="MainWindow.xaml.cs">
+    <Compile Include="features\mainWindow\IMainWindow.cs" />
+    <Compile Include="features\mainWindow\MainWindowController.cs" />
+    <Compile Include="features\mainWindow\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="features\res\WindowResources.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -92,6 +106,60 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\arrow_back.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\arrow_back_hover.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\arrow_down.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\close.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\close_black.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\close_hover.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\maximize.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\maximize_hover.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\minimize.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\minimize_hover.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\normalize.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\normalize_hover.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\server_logo.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\server_logo_24.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\settings.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\settings_hover.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="features\res\images\app_ic.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="app_ic.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

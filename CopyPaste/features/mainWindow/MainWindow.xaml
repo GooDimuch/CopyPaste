@@ -1,0 +1,135 @@
+﻿<Window x:Class="CopyPaste.features.mainWindow.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:CopyPaste"
+        mc:Ignorable="d"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        AllowsTransparency="False"
+        Title="MainWindow" Height="280" Width="800"
+        Loaded="MainWindow_OnLoaded">
+
+
+    <Window.Resources>
+        <!--стиль для TextBlock-->
+        <Style TargetType="{x:Type TextBlock}" BasedOn="{StaticResource NormalTextBlock}">
+            <Setter Property="FontSize" Value="{StaticResource FontSizeMain}" />
+        </Style>
+
+        <!--стиль для TextBlock-->
+        <Style x:Key="ForTextBox" TargetType="{x:Type TextBlock}" BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Setter Property="Height" Value="52" />
+            <Setter Property="Margin" Value="10, 16" />
+            <Setter Property="Padding" Value="8, 10, 8, 0" />
+        </Style>
+
+        <!--стиль для TextBox-->
+        <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource NormalTextBox}">
+            <Setter Property="FontSize" Value="{StaticResource FontSizeMain}" />
+            <Setter Property="Height" Value="52" />
+            <Setter Property="Margin" Value="10, 16" />
+            <Setter Property="Padding" Value="5, 9, 5, 0" />
+        </Style>
+
+        <!--стиль для Button-->
+        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource NormalButton}">
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Margin" Value="10, 16" />
+            <Setter Property="Padding" Value="9" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+
+        <!--стиль для ComboBoxItem-->
+        <Style TargetType="{x:Type ComboBoxItem}" BasedOn="{StaticResource NormalComboBoxItem}" />
+    </Window.Resources>
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="3" />
+    </WindowChrome.WindowChrome>
+
+    <Border Name="Border" BorderBrush="{StaticResource HeaderBrush}" BorderThickness="1">
+        <Grid ShowGridLines="False">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="24" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="{StaticResource HeaderBrush}">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" FlowDirection="LeftToRight"
+                                HorizontalAlignment="Left" VerticalAlignment="Top" />
+                    <StackPanel Orientation="Horizontal" FlowDirection="RightToLeft"
+                                HorizontalAlignment="Right" VerticalAlignment="Top">
+                        <Button Style="{StaticResource BCloseWindow}" Click="Close_OnClick" />
+                        <Button Name="BChangeState" Style="{StaticResource BMaximizeWindow}"
+                                Click="ChangeState_OnClick" />
+                        <Button Style="{StaticResource BMinimizeWindow}" Click="MinimizedState_OnClick" />
+                    </StackPanel>
+
+                    <TextBlock Name="TbHeader" Foreground="{StaticResource WhiteBrush}"
+                               FontSize="{StaticResource FontSizeNormal}" Margin="0"
+                               HorizontalAlignment="Center" VerticalAlignment="Top" />
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="1" ShowGridLines="False">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="4*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="auto" />
+                    <RowDefinition Height="auto" />
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Column="0" Grid.Row="0">
+                    <TextBlock Text="Путь к EOBD" Style="{StaticResource ForTextBox}"
+                               Visibility="{Binding ElementName=tboxEOBDPath, Path=Text.IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <TextBox Name="tboxEOBDPath" />
+                </Grid>
+                <Button Grid.Column="1" Grid.Row="0" Name="bEobdExplorer" Click="BEobdExplorer_OnClick">
+                    <TextBlock Text="Выбрать" />
+                </Button>
+
+                <Grid Grid.Column="0" Grid.Row="1">
+                    <TextBlock Text="Путь к Vehicle" Style="{StaticResource ForTextBox}"
+                               Visibility="{Binding ElementName=tboxVehiclePath, Path=Text.IsEmpty, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <TextBox Name="tboxVehiclePath" />
+                </Grid>
+                <Button Grid.Column="1" Grid.Row="1" Name="bVehicleExplorer" Click="BVehicleExplorer_OnClick">
+                    <TextBlock Text="Выбрать" />
+                </Button>
+
+                <Button Grid.ColumnSpan="2" Grid.Row="2" Name="bStart" Click="BStart_OnClick"
+                        HorizontalAlignment="Center">
+                    <TextBlock Text="Начать" />
+                </Button>
+
+                <Grid Grid.ColumnSpan="2" Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="10" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="10" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="10" />
+                    </Grid.RowDefinitions>
+
+                    <ProgressBar Grid.Column="1" Grid.Row="1" Name="pbFiles" Maximum="10000" Visibility="Hidden" />
+
+                    <TextBlock Grid.Column="1" Grid.Row="2" Name="tbFilePath"
+                               HorizontalAlignment="Left" FontSize="{StaticResource FontSizeNormal}" />
+                </Grid>
+
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
