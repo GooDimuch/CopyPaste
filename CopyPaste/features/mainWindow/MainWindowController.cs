@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Threading;
@@ -16,6 +17,11 @@ namespace CopyPaste.features.mainWindow {
 		public static readonly string DEFAULT_TEMP_PATH = $@"C:\_Data\Test\_laboratory\Temp";
 		public static readonly string DEFAULT_EOBD_PATH = $@"C:\_Data\Test\_laboratory\EOBD2\V22.53";
 		public static readonly string DEFAULT_VEHICLE_PATH = $@"C:\_Data\Test\_laboratory\EUROPE";
+		public static readonly string ADAP_VER = "ADAP.VER";
+		public static readonly string LICENSE_DAT = "LICENSE.DAT";
+		public static readonly string LIB_CFG = "lib.cfg";
+		public static readonly string ANDROID_DEV = "Android.dev";
+		public static readonly string BASE_FOLDER = AppDomain.CurrentDomain.BaseDirectory;
 
 		private readonly IMainWindow window;
 		private readonly Dispatcher dispatcher;
@@ -63,8 +69,8 @@ namespace CopyPaste.features.mainWindow {
 								try {
 									if (!new DirectoryInfo(sEOBDPath).Exists) { window.showMessage("Неверно указан путь к EOBD"); }
 									if (!new DirectoryInfo(sVehiclePath).Exists) { window.showMessage("Неверно указан путь к Vehile"); }
-									var libCfgPath = Path.Combine(sEOBDPath, "lib.cfg");
-									if (!new FileInfo(libCfgPath).Exists) { window.showMessage("Не найден файл lib.cfg"); }
+									var libCfgPath = Path.Combine(sEOBDPath, LIB_CFG);
+									if (!new FileInfo(libCfgPath).Exists) { window.showMessage($"Не найден файл {LIB_CFG}"); }
 									createAndroidDev();
 									createLastRow();
 									dispatcher.Invoke(() => window.setTextInStatus("Склеивание"));
@@ -79,8 +85,8 @@ namespace CopyPaste.features.mainWindow {
 		}
 
 		private void createAndroidDev() {
-			var LicenseDat = Path.Combine(sEOBDPath, "LICENSE.DAT");
-			var androidDev = Path.Combine(sEOBDPath, "Android.dev");
+			var LicenseDat = Path.Combine(sEOBDPath, LICENSE_DAT);
+			var androidDev = Path.Combine(sEOBDPath, ANDROID_DEV);
 			if (new FileInfo(androidDev).Exists) { File.Delete(androidDev); }
 			File.Copy(LicenseDat, androidDev);
 		}
@@ -88,12 +94,11 @@ namespace CopyPaste.features.mainWindow {
 		private void createLastRow() {
 			try {
 				var lastRow = Path.Combine(sEOBDPath, "last_row.so");
-				if (!new FileInfo(lastRow).Exists) { File.Create(lastRow); }
 				var sVersion = new FileInfo(lastRow).Directory?.Name;
 
 				var iVersion = 1000 * Convert.ToInt32(sVersion?[1].ToString()) + 100 * Convert.ToInt32(sVersion?[2].ToString()) +
 											10 * Convert.ToInt32(sVersion?[4].ToString()) + 1 * Convert.ToInt32(sVersion?[5].ToString());
-				if (iVersion > 2237) { File.WriteAllText(lastRow, $"EOBD2{sVersion}"); }
+				if (iVersion > 2237) { File.WriteAllText(lastRow, $"EOBD2{sVersion}", Encoding.Default); }
 			} catch (Exception e) {
 				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
 			}
@@ -120,7 +125,7 @@ namespace CopyPaste.features.mainWindow {
 		}
 
 		private async Task glueResultingFiles(List<FileInfo> fileList, Action<double> progressCallback) {
-			var adapVer = Path.Combine(sEOBDPath, "adap.ver");
+			var adapVer = Path.Combine(sEOBDPath, ADAP_VER);
 			if (new FileInfo(adapVer).Exists) { File.Delete(adapVer); }
 			var total_size = fileList.Select(fileInfo => fileInfo.Length).Sum();
 			long total_read = 0;
@@ -149,9 +154,9 @@ namespace CopyPaste.features.mainWindow {
 
 			try {
 				fileList.Add(new FileInfo(Path.Combine(sEOBDPath, "adap.ver")));
-				fileList.Add(new FileInfo(Path.Combine(sEOBDPath, "Dpu.ver")));
+				fileList.Add(new FileInfo(Path.Combine(BASE_FOLDER, "Dpu.ver")));
 				fileList.Add(new FileInfo(Path.Combine(sEOBDPath, "Android.dev")));
-				fileList.Add(new FileInfo(Path.Combine(sEOBDPath, "libSTD.so")));
+				fileList.Add(new FileInfo(Path.Combine(BASE_FOLDER, "libSTD.so")));
 			} catch (Exception e) {
 				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
 			}
@@ -177,39 +182,47 @@ namespace CopyPaste.features.mainWindow {
 		public async Task copyFiles(Dictionary<string, string> files, Action<double> progressCallback) {
 //			foreach (var key in files.Keys) { File.Delete(key); }
 //			return;
-			var total_size = files.Values.Select(x => new FileInfo(x).Length).Sum();
-			long total_read = 0;
-			const double progress_size = 10000.0;
+			try {
+				var total_size = files.Values.Select(x => new FileInfo(x).Length).Sum();
+				long total_read = 0;
+				const double progress_size = 10000.0;
 
-			foreach (var item in files) {
-				long total_read_for_file = 0;
-				var from = item.Value;
-				var to = item.Key;
+				foreach (var item in files) {
+					long total_read_for_file = 0;
+					var from = item.Value;
+					var to = item.Key;
 
-				using (var outStream = new FileStream(to, FileMode.Create, FileAccess.Write, FileShare.Read)) {
-					using (var inStream = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-						await copyStream(inStream, outStream, x => {
-																										total_read_for_file = x;
+					using (var outStream = new FileStream(to, FileMode.Create, FileAccess.Write, FileShare.Read)) {
+						using (var inStream = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+							await copyStream(inStream, outStream, x => {
+																											total_read_for_file = x;
 
-																										dispatcher.Invoke(() => progressCallback((total_read + total_read_for_file) /
-																																														(double) total_size * progress_size));
-																									});
+																											dispatcher.Invoke(() => progressCallback((total_read + total_read_for_file) /
+																																															(double) total_size * progress_size));
+																										});
+						}
 					}
+					total_read += total_read_for_file;
 				}
-				total_read += total_read_for_file;
+			} catch (Exception e) {
+				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
 			}
 		}
 
-		public static async Task copyStream(Stream from, Stream to, Action<long> progress) {
-			const int buffer_size = 1024 * 10;
-			var buffer = new byte[buffer_size];
-			long total_read = 0;
+		public async Task copyStream(Stream from, Stream to, Action<long> progress) {
+			try {
+				const int buffer_size = 1024 * 10;
+				var buffer = new byte[buffer_size];
+				long total_read = 0;
 
-			while (total_read < from.Length) {
-				var read = await from.ReadAsync(buffer, 0, buffer_size);
-				await to.WriteAsync(buffer, 0, read);
-				total_read += read;
-				progress(total_read);
+				while (total_read < from.Length) {
+					var read = await from.ReadAsync(buffer, 0, buffer_size);
+					await to.WriteAsync(buffer, 0, read);
+					total_read += read;
+					progress(total_read);
+				}
+			} catch (Exception e) {
+				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
 			}
 		}
 	}
