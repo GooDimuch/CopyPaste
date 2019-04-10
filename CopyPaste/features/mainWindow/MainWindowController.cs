@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -28,6 +30,7 @@ namespace CopyPaste.features.mainWindow {
 
 		private string sEOBDPath;
 		private string sVehiclePath;
+		private bool isRevert;
 
 		public MainWindowController(IMainWindow window, Dispatcher dispatcher) {
 			this.window = window;
@@ -58,12 +61,13 @@ namespace CopyPaste.features.mainWindow {
 							throw new Exception(result.ToString());
 					}
 				}
-			} catch (Exception e) { dispatcher.Invoke(() => window.showMessage(e.Message)); }
+			} catch (Exception e) { dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e}")); }
 		}
 
-		public void startProcedure(string sEOBDPath, string sVehiclePath) {
+		public void startProcedure(string sEOBDPath, string sVehiclePath, bool? cbRevertIsChecked) {
 			this.sEOBDPath = sEOBDPath;
 			this.sVehiclePath = sVehiclePath;
+			this.isRevert = cbRevertIsChecked ?? false;
 
 			Task.Run(() => {
 								try {
@@ -79,16 +83,20 @@ namespace CopyPaste.features.mainWindow {
 									copyFiles(getDictionary(getFilesForCopied(), sVehiclePath), window.setValueInProgressBar).Wait();
 									dispatcher.Invoke(() => window.copiedCompleted());
 								} catch (Exception e) {
-									dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
+									dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e}"));
 								}
 							});
 		}
 
 		private void createAndroidDev() {
-			var LicenseDat = Path.Combine(sEOBDPath, LICENSE_DAT);
-			var androidDev = Path.Combine(sEOBDPath, ANDROID_DEV);
-			if (new FileInfo(androidDev).Exists) { File.Delete(androidDev); }
-			File.Copy(LicenseDat, androidDev);
+			try {
+				var LicenseDat = Path.Combine(sEOBDPath, LICENSE_DAT);
+				var androidDev = Path.Combine(sEOBDPath, ANDROID_DEV);
+				if (new FileInfo(androidDev).Exists) { File.Delete(androidDev); }
+				File.Copy(LicenseDat, androidDev);
+			} catch (Exception e) {
+				throw new CustomException($"{MethodBase.GetCurrentMethod().Name}: Ошибка склеивания файлов {e}");
+			}
 		}
 
 		private void createLastRow() {
@@ -100,7 +108,7 @@ namespace CopyPaste.features.mainWindow {
 											10 * Convert.ToInt32(sVersion?[4].ToString()) + 1 * Convert.ToInt32(sVersion?[5].ToString());
 				if (iVersion > 2237) { File.WriteAllText(lastRow, $"EOBD2{sVersion}", Encoding.Default); }
 			} catch (Exception e) {
-				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
+				throw new CustomException($"{MethodBase.GetCurrentMethod().Name}: Ошибка создания last_row.so {e}");
 			}
 		}
 
@@ -118,34 +126,38 @@ namespace CopyPaste.features.mainWindow {
 					if (string.IsNullOrEmpty(fileName)) { continue; }
 					fileList.Add(new FileInfo(Path.Combine(folderPath, fileName)));
 				}
-			} catch (Exception e) {
-				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
+			} catch (CustomException) { throw; } catch (Exception e) {
+				throw new CustomException($"{MethodBase.GetCurrentMethod().Name}: Ошибка получения файлов {e}");
 			}
 			return fileList;
 		}
 
 		private async Task glueResultingFiles(List<FileInfo> fileList, Action<double> progressCallback) {
-			var adapVer = Path.Combine(sEOBDPath, ADAP_VER);
-			if (new FileInfo(adapVer).Exists) { File.Delete(adapVer); }
-			var total_size = fileList.Select(fileInfo => fileInfo.Length).Sum();
-			long total_read = 0;
-			const double progress_size = 10000.0;
+			try {
+				var adapVer = Path.Combine(sEOBDPath, ADAP_VER);
+				if (new FileInfo(adapVer).Exists) { File.Delete(adapVer); }
+				var total_size = fileList.Select(fileInfo => fileInfo.Length).Sum();
+				long total_read = 0;
+				const double progress_size = 10000.0;
 
-			foreach (var fileInfo in fileList) {
-				long total_read_for_file = 0;
-				var from = fileInfo.FullName;
-				var to = adapVer;
+				foreach (var fileInfo in fileList) {
+					long total_read_for_file = 0;
+					var from = fileInfo.FullName;
+					var to = adapVer;
 
-				using (var outStream = new FileStream(to, FileMode.Append, FileAccess.Write, FileShare.Read)) {
-					using (var inStream = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read)) {
-						await copyStream(inStream, outStream, x => {
-																										total_read_for_file = x;
+					using (var outStream = new FileStream(to, FileMode.Append, FileAccess.Write, FileShare.Read)) {
+						using (var inStream = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+							await copyStream(inStream, outStream, x => {
+																											total_read_for_file = x;
 
-																										dispatcher.Invoke(() => progressCallback((total_read + total_read_for_file) /
-																																														(double) total_size * progress_size));
-																									});
+																											dispatcher.Invoke(() => progressCallback((total_read + total_read_for_file) /
+																																															(double) total_size * progress_size));
+																										});
+						}
 					}
 				}
+			} catch (CustomException) { throw; } catch (Exception e) {
+				throw new CustomException($"{MethodBase.GetCurrentMethod().Name}: Ошибка склеивания файлов {e}");
 			}
 		}
 
@@ -158,7 +170,7 @@ namespace CopyPaste.features.mainWindow {
 				fileList.Add(new FileInfo(Path.Combine(sEOBDPath, "Android.dev")));
 				fileList.Add(new FileInfo(Path.Combine(BASE_FOLDER, "libSTD.so")));
 			} catch (Exception e) {
-				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
+				throw new CustomException($"{MethodBase.GetCurrentMethod().Name}: Ошибка сбора файлов для копирования {e}");
 			}
 			return fileList;
 		}
@@ -167,21 +179,32 @@ namespace CopyPaste.features.mainWindow {
 			var dictionary = new Dictionary<string, string>();
 
 			try {
-				var directoryList = new DirectoryInfo(finalPath).GetDirectories("*", SearchOption.AllDirectories).ToList();
-				directoryList.Add(new DirectoryInfo(finalPath));
+				var allDirectoryList = new DirectoryInfo(finalPath).GetDirectories("*", SearchOption.AllDirectories).ToList();
+				allDirectoryList.Add(new DirectoryInfo(finalPath));
+				var directoryList = new List<DirectoryInfo>();
+
+				allDirectoryList.ForEach(info => {
+																	var hasFile = info
+																								.GetFiles().Select(fileInfo => string.Equals(fileInfo.Name, "libSTD.so",
+																																														StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault();
+																	if (hasFile) { directoryList.Add(info); }
+																});
 
 				directoryList.ForEach(directoryInfo =>
 																fileList.ForEach(info => dictionary.Add(Path.Combine(directoryInfo.FullName, info.Name),
 																																				info.FullName)));
 			} catch (Exception e) {
-				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
+				throw new CustomException($"{MethodBase.GetCurrentMethod().Name}: Ошибка создания словаря {e}");
 			}
 			return dictionary;
 		}
 
 		public async Task copyFiles(Dictionary<string, string> files, Action<double> progressCallback) {
-//			foreach (var key in files.Keys) { File.Delete(key); }
-//			return;
+			if (isRevert) {
+				foreach (var key in files.Keys) { File.Delete(key); }
+				return;
+			}
+
 			try {
 				var total_size = files.Values.Select(x => new FileInfo(x).Length).Sum();
 				long total_read = 0;
@@ -204,8 +227,8 @@ namespace CopyPaste.features.mainWindow {
 					}
 					total_read += total_read_for_file;
 				}
-			} catch (Exception e) {
-				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
+			} catch (CustomException) { throw; } catch (Exception e) {
+				throw new CustomException($"{MethodBase.GetCurrentMethod().Name}: Ошибка копирования файлов {e}");
 			}
 		}
 
@@ -222,7 +245,7 @@ namespace CopyPaste.features.mainWindow {
 					progress(total_read);
 				}
 			} catch (Exception e) {
-				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e.Message}"));
+				throw new CustomException($"{MethodBase.GetCurrentMethod().Name}: Ошибка копирования {from} -> {to} {e}");
 			}
 		}
 	}

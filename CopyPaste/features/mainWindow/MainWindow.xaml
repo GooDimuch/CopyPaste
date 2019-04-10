@@ -76,6 +76,9 @@
                 </Grid>
             </Border>
 
+            <CheckBox Name="CbRevert" Margin="10" Grid.Row="1" 
+                      HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+
             <Grid Grid.Row="1" ShowGridLines="False">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="4*" />

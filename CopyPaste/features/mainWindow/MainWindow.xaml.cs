@@ -1,5 +1,4 @@
-﻿using System;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using CopyPaste.utils;
@@ -12,14 +11,16 @@ namespace CopyPaste.features.mainWindow {
 	/// Логика взаимодействия для MainWindow.xaml
 	/// </summary>
 	public partial class MainWindow : IMainWindow {
-		private readonly MainWindowController presenter;
+		private readonly MainWindowController _controller;
 
 		public MainWindow() {
 			InitializeComponent();
-			presenter = new MainWindowController(this, Dispatcher.CurrentDispatcher);
+			_controller = new MainWindowController(this, Dispatcher.CurrentDispatcher);
 		}
 
-		private void MainWindow_OnLoaded(object sender, RoutedEventArgs e) { }
+		private void MainWindow_OnLoaded(object sender, RoutedEventArgs e) {
+			CbRevert.Visibility = Utils.isDebug() ? Visibility.Visible : Visibility.Collapsed;
+		}
 
 		protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e) {
 			base.OnMouseLeftButtonDown(e);
@@ -49,22 +50,22 @@ namespace CopyPaste.features.mainWindow {
 
 		private void MinimizedState_OnClick(object sender, RoutedEventArgs e) { WindowState = WindowState.Minimized; }
 
-		private void BEobdExplorer_OnClick(object sender, RoutedEventArgs e) { presenter.findEOBDPath(); }
+		private void BEobdExplorer_OnClick(object sender, RoutedEventArgs e) { _controller.findEOBDPath(); }
 
-		private void BVehicleExplorer_OnClick(object sender, RoutedEventArgs e) { presenter.findVehiclePath(); }
+		private void BVehicleExplorer_OnClick(object sender, RoutedEventArgs e) { _controller.findVehiclePath(); }
 
 		private void BStart_OnClick(object sender, RoutedEventArgs e) {
 			workState();
-			presenter.startProcedure(tboxEOBDPath.Text, tboxVehiclePath.Text);
+			_controller.startProcedure(tboxEOBDPath.Text, tboxVehiclePath.Text, CbRevert.IsChecked);
 		}
 
-		public void startState() {
+		private void startState() {
 			setTextInStatus(string.Empty);
 			bStart.Visibility = Visibility.Visible;
 			pbFiles.Visibility = Visibility.Hidden;
 		}
 
-		public void workState() {
+		private void workState() {
 			setTextInStatus(string.Empty);
 			bStart.Visibility = Visibility.Hidden;
 			pbFiles.Visibility = Visibility.Visible;
