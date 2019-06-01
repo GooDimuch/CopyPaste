@@ -17,8 +17,13 @@ namespace CopyPaste.features.mainWindow {
 		//		private static readonly string DEFAULT_EOBD_PATH = $@"c:\Program Files";
 		//		private static readonly string DEFAULT_VEHICLE_PATH = $@"c:\Program Files";
 		public static readonly string DEFAULT_TEMP_PATH = $@"C:\_Data\Test\_laboratory\Temp";
-		public static readonly string DEFAULT_EOBD_PATH = $@"C:\_Data\Test\_laboratory\EOBD2\V22.53";
-		public static readonly string DEFAULT_VEHICLE_PATH = $@"C:\_Data\Test\_laboratory\EUROPE";
+
+		public static readonly string DEFAULT_EOBD_PATH =
+			$@"C:\_Data\Test\_laboratory\Новая папка\марка\Новая папка\VEHICLES\EOBD2\V22.62";
+
+		public static readonly string DEFAULT_VEHICLE_PATH =
+			$@"C:\_Data\Test\_laboratory\Новая папка\марка1\New_folder\VEHICLES";
+
 		public static readonly string ADAP_VER = "ADAP.VER";
 		public static readonly string LICENSE_DAT = "LICENSE.DAT";
 		public static readonly string LIB_CFG = "lib.cfg";
@@ -32,7 +37,8 @@ namespace CopyPaste.features.mainWindow {
 		private string sVehiclePath;
 		private bool isRevert;
 
-		public MainWindowController(IMainWindow window, Dispatcher dispatcher) {
+		public MainWindowController(IMainWindow window,
+																Dispatcher dispatcher) {
 			this.window = window;
 			this.dispatcher = dispatcher;
 		}
@@ -45,7 +51,8 @@ namespace CopyPaste.features.mainWindow {
 
 		public void findVehiclePath(string startPath) { openFolderDialog(startPath, window.setVehiclePath); }
 
-		private void openFolderDialog(string startPath, Action<string> action) {
+		private void openFolderDialog(string startPath,
+																	Action<string> action) {
 			try {
 				using (var dialog = new FolderBrowserDialog()) {
 					dialog.SelectedPath = startPath;
@@ -55,16 +62,22 @@ namespace CopyPaste.features.mainWindow {
 						case DialogResult.OK:
 							dispatcher.Invoke(() => action(dialog.SelectedPath));
 							break;
+
 						case DialogResult.Cancel:
 							break;
+
 						default:
 							throw new Exception(result.ToString());
 					}
 				}
-			} catch (Exception e) { dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e}")); }
+			} catch (Exception e) {
+				dispatcher.Invoke(() => window.showMessage($"{MethodBase.GetCurrentMethod().Name}: {e}"));
+			}
 		}
 
-		public void startProcedure(string sEOBDPath, string sVehiclePath, bool? cbRevertIsChecked) {
+		public void startProcedure(string sEOBDPath,
+															string sVehiclePath,
+															bool? cbRevertIsChecked) {
 			this.sEOBDPath = sEOBDPath;
 			this.sVehiclePath = sVehiclePath;
 			this.isRevert = cbRevertIsChecked ?? false;
@@ -104,8 +117,9 @@ namespace CopyPaste.features.mainWindow {
 				var lastRow = Path.Combine(sEOBDPath, "last_row.so");
 				var sVersion = new FileInfo(lastRow).Directory?.Name;
 
-				var iVersion = 1000 * Convert.ToInt32(sVersion?[1].ToString()) + 100 * Convert.ToInt32(sVersion?[2].ToString()) +
-											10 * Convert.ToInt32(sVersion?[4].ToString()) + 1 * Convert.ToInt32(sVersion?[5].ToString());
+				var iVersion = 1000 * Convert.ToInt32(sVersion?[1].ToString()) +
+											100 * Convert.ToInt32(sVersion?[2].ToString()) + 10 * Convert.ToInt32(sVersion?[4].ToString()) +
+											1 * Convert.ToInt32(sVersion?[5].ToString());
 				if (iVersion > 2237) { File.WriteAllText(lastRow, $"EOBD2{sVersion}", Encoding.Default); }
 			} catch (Exception e) {
 				throw new CustomException($"{MethodBase.GetCurrentMethod().Name}: Ошибка создания last_row.so {e}");
@@ -132,7 +146,8 @@ namespace CopyPaste.features.mainWindow {
 			return fileList;
 		}
 
-		private async Task glueResultingFiles(List<FileInfo> fileList, Action<double> progressCallback) {
+		private async Task glueResultingFiles(List<FileInfo> fileList,
+																					Action<double> progressCallback) {
 			try {
 				var adapVer = Path.Combine(sEOBDPath, ADAP_VER);
 				if (new FileInfo(adapVer).Exists) { File.Delete(adapVer); }
@@ -150,8 +165,10 @@ namespace CopyPaste.features.mainWindow {
 							await copyStream(inStream, outStream, x => {
 																											total_read_for_file = x;
 
-																											dispatcher.Invoke(() => progressCallback((total_read + total_read_for_file) /
-																																															(double) total_size * progress_size));
+																											dispatcher.Invoke(() => progressCallback((total_read +
+																																																total_read_for_file) /
+																																															(double) total_size *
+																																															progress_size));
 																										});
 						}
 					}
@@ -175,7 +192,8 @@ namespace CopyPaste.features.mainWindow {
 			return fileList;
 		}
 
-		private Dictionary<string, string> getDictionary(List<FileInfo> fileList, string finalPath) {
+		private Dictionary<string, string> getDictionary(List<FileInfo> fileList,
+																										string finalPath) {
 			var dictionary = new Dictionary<string, string>();
 
 			try {
@@ -185,8 +203,9 @@ namespace CopyPaste.features.mainWindow {
 
 				allDirectoryList.ForEach(info => {
 																	var hasFile = info
-																								.GetFiles().Select(fileInfo => string.Equals(fileInfo.Name, "libSTD.so",
-																																														StringComparison.CurrentCultureIgnoreCase)).FirstOrDefault();
+																								.GetFiles().Any(fileInfo => string.Equals(fileInfo.Name, "libSTD.so",
+																																													StringComparison
+																																														.CurrentCultureIgnoreCase));
 																	if (hasFile) { directoryList.Add(info); }
 																});
 
@@ -199,7 +218,8 @@ namespace CopyPaste.features.mainWindow {
 			return dictionary;
 		}
 
-		public async Task copyFiles(Dictionary<string, string> files, Action<double> progressCallback) {
+		public async Task copyFiles(Dictionary<string, string> files,
+																Action<double> progressCallback) {
 			if (isRevert) {
 				foreach (var key in files.Keys) { File.Delete(key); }
 				return;
@@ -220,8 +240,10 @@ namespace CopyPaste.features.mainWindow {
 							await copyStream(inStream, outStream, x => {
 																											total_read_for_file = x;
 
-																											dispatcher.Invoke(() => progressCallback((total_read + total_read_for_file) /
-																																															(double) total_size * progress_size));
+																											dispatcher.Invoke(() => progressCallback((total_read +
+																																																total_read_for_file) /
+																																															(double) total_size *
+																																															progress_size));
 																										});
 						}
 					}
@@ -232,7 +254,9 @@ namespace CopyPaste.features.mainWindow {
 			}
 		}
 
-		public async Task copyStream(Stream from, Stream to, Action<long> progress) {
+		public async Task copyStream(Stream from,
+																Stream to,
+																Action<long> progress) {
 			try {
 				const int buffer_size = 1024 * 10;
 				var buffer = new byte[buffer_size];
